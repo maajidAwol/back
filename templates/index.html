@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Search</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+        }
+        label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .results {
+            margin-top: 20px;
+        }
+        .results p {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Restaurant Search</h1>
+    <label for="city">City:</label>
+    <input type="text" id="city" placeholder="Enter city name">
+
+    <label for="preferences">Preferences:</label>
+    <input type="text" id="preferences" placeholder="e.g. vegan, halal">
+
+    <button onclick="searchRestaurants()">Search</button>
+
+    <div class="results" id="results">
+        <!-- Results will appear here -->
+    </div>
+</div>
+
+<script>
+    async function searchRestaurants() {
+        const city = document.getElementById('city').value;
+        const preferences = document.getElementById('preferences').value;
+
+        if (!city || !preferences) {
+            alert('Please fill in both fields.');
+            return;
+        }
+
+        const response = await fetch('http://127.0.0.1:5000/search-restaurants', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ city, preferences }),
+        });
+
+        const data = await response.json();
+
+        const resultsDiv = document.getElementById('results');
+        resultsDiv.innerHTML = '';  // Clear previous results
+
+        if (data.filtered_restaurants && data.filtered_restaurants.length > 0) {
+            data.filtered_restaurants.forEach(restaurant => {
+                const p = document.createElement('p');
+                p.textContent = restaurant;
+                resultsDiv.appendChild(p);
+            });
+        } else {
+            resultsDiv.innerHTML = '<p>No results found.</p>';
+        }
+    }
+</script>
+
+</body>
+</html>
