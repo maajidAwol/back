@@ -5,5 +5,5 @@ requests==2.26.0
 python-dotenv==0.19.2
 Flask-Cors==3.0.10
 openai==0.27.0
-bs4
-pytesseract
+beautifulsoup4==4.11.1  # Correcting the package name for BeautifulSoup
+pytesseract==0.3.10  # Specify the version of pytesseract
