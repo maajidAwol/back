@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Restaurant Search</title>
+    <title>Product Detection</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -25,12 +25,9 @@
             display: block;
             margin: 10px 0 5px;
         }
-        input[type="text"] {
+        input[type="file"] {
             width: 100%;
-            padding: 10px;
             margin-bottom: 20px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
         }
         button {
             width: 100%;
@@ -56,14 +53,13 @@
 <body>
 
 <div class="container">
-    <h1>Restaurant Search</h1>
-    <label for="city">City:</label>
-    <input type="text" id="city" placeholder="Enter city name">
+    <h1>Product Detection</h1>
 
-    <label for="preferences">Preferences:</label>
-    <input type="text" id="preferences" placeholder="e.g. vegan, halal">
-
-    <button onclick="searchRestaurants()">Search</button>
+    <form id="imageForm">
+        <label for="image">Upload Image:</label>
+        <input type="file" id="image" accept="image/*" required>
+        <button type="submit">Upload and Process</button>
+    </form>
 
     <div class="results" id="results">
         <!-- Results will appear here -->
@@ -71,38 +67,75 @@
 </div>
 
 <script>
-    async function searchRestaurants() {
-        const city = document.getElementById('city').value;
-        const preferences = document.getElementById('preferences').value;
+    document.getElementById('imageForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
 
-        if (!city || !preferences) {
-            alert('Please fill in both fields.');
+        const fileInput = document.getElementById('image');
+        const file = fileInput.files[0];
+
+        if (!file) {
+            alert('Please select an image!');
             return;
         }
 
-        const response = await fetch('https://back-8s9k.onrender.com/search-restaurants', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ city, preferences }),
-        });
+        // Convert image file to base64
+        const reader = new FileReader();
+        reader.onloadend = async function() {
+            const imageBase64 = reader.result.split(',')[1]; // Extract base64 string
 
-        const data = await response.json();
+            // Send the base64 image to Flask backend
+            try {
+                const response = await fetch('/api/process-image', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ image: imageBase64 })
+                });
 
-        const resultsDiv = document.getElementById('results');
-        resultsDiv.innerHTML = '';  // Clear previous results
+                if (!response.ok) {
+                    throw new Error('Error processing image');
+                }
 
-        if (data.filtered_restaurants && data.filtered_restaurants.length > 0) {
-            data.filtered_restaurants.forEach(restaurant => {
-                const p = document.createElement('p');
-                p.textContent = restaurant;
-                resultsDiv.appendChild(p);
-            });
-        } else {
-            resultsDiv.innerHTML = '<p>No results found.</p>';
-        }
-    }
+                const data = await response.json();
+                const resultsDiv = document.getElementById('results');
+                resultsDiv.innerHTML = ''; // Clear previous results
+
+                if (data.error) {
+                    resultsDiv.innerHTML = `<p>Error: ${data.error}</p>`;
+                } else {
+                    // Display OCR text
+                    const textDiv = document.createElement('div');
+                    textDiv.innerHTML = `<strong>OCR Text:</strong><p>${data.text}</p>`;
+                    resultsDiv.appendChild(textDiv);
+
+                    // Display object detection results
+                    const objectsDiv = document.createElement('div');
+                    objectsDiv.innerHTML = `<strong>Objects Detected:</strong>`;
+                    data.objects.forEach(obj => {
+                        const p = document.createElement('p');
+                        p.textContent = obj.name;
+                        objectsDiv.appendChild(p);
+                    });
+                    resultsDiv.appendChild(objectsDiv);
+
+                    // Display product info
+                    const productInfoDiv = document.createElement('div');
+                    productInfoDiv.innerHTML = `<strong>Extracted Product Info:</strong>
+                        <p>Name: ${data.productInfo.name}</p>
+                        <p>Brand: ${data.productInfo.brand}</p>
+                        <p>Model: ${data.productInfo.model}</p>
+                        <p>Size: ${data.productInfo.size}</p>`;
+                    resultsDiv.appendChild(productInfoDiv);
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('There was an error processing your request. Please try again.');
+            }
+        };
+        reader.readAsDataURL(file);
+    });
 </script>
 
 </body>
